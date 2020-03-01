@@ -1,0 +1,25 @@
+Eratosthenes algorithm
+
+Set-based: N: 1000 Time: 0
+Array-based: N: 1000 Time: 0
+
+Set-based: N: 10000 Time: 0.1875
+Array-based: N: 10000 Time: 0
+
+Set-based: N: 15000 Time: 0.46875
+Array-based: N: 15000 Time: 0
+
+Set-based: N: 20000 Time: 0.875
+Array-based: N: 20000 Time: 0
+
+Set-based: N: 30000 Time: 1.79688
+Array-based: N: 30000 Time: 0
+
+Set-based: N: 50000 Time: 5.25
+Array-based: N: 50000 Time: 0.03125
+
+Set-based: N: 100000 Time: 21.3125
+Array-based: N: 100000 Time: 0.109375
+
+Set-based: N: 250000 Time: 156.656
+Array-based: N: 250000 Time: 0.71875

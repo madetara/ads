@@ -44,7 +44,6 @@ void run_tests() {
     {
         auto positives = new LinkedList<int>();
         auto negatives = new LinkedList<int>();
-
         auto base = new LinkedList<int>{1, -1, 2, 5, -42, 666};
         std::cout << "Input list: " << *base << std::endl
                   << "Splitting..." << std::endl;
