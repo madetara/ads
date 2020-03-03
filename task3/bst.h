@@ -257,8 +257,11 @@ public:
         auto right = to_remove->_right;
         auto parent = to_remove->_parent;
 
-        _replace_child(parent, to_remove, right);
-        _sink_left(left, right);
+        if (parent->_left == to_remove) {
+            _reattach_branch(right, left);
+        } else {
+            _reattach_branch(left, right);
+        }
 
         delete to_remove;
     }
@@ -495,7 +498,18 @@ private:
         delete to_remove;
     }
 
-    inline void _replace_child(node *parent, node *child, node *replacement) {
+    inline void _reattach_branch(node *new_branch, node *dead_branch) {
+        auto to_remove = dead_branch->_parent;
+        if (new_branch != nullptr) {
+            _replace_child(to_remove, new_branch);
+            _sink_left(dead_branch, new_branch);
+        } else {
+            _replace_child(to_remove, dead_branch);
+        }
+    }
+
+    inline void _replace_child(node *child, node *replacement) {
+        auto parent = child->_parent;
         if (parent->_left == child)
             parent->_left = replacement;
         else

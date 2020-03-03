@@ -131,6 +131,19 @@ void run_bst_tests() {
 
         assert(tree.equals(another_tree));
     }
+    {
+        auto tree = bst<int>();
+
+        tree.push(1);
+        tree.push(2);
+        tree.push(3);
+
+        tree.remove(2);
+
+        assert(tree.min() == 1);
+        assert(tree.max() == 3);
+        assert(!tree.find(2));
+    }
 }
 
 void run_set_tests() {
@@ -145,6 +158,15 @@ void run_set_tests() {
         set.add(42);
         assert(set.contains(42));
 
+        set.remove(42);
+        assert(!set.contains(42));
+    }
+    {
+        auto set = ordered_set<int>();
+        set.add(42);
+        assert(set.contains(42));
+
+        set.add(42);
         set.remove(42);
         assert(!set.contains(42));
     }

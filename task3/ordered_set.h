@@ -38,6 +38,8 @@ public:
     }
 
     void add(const T &value) {
+        if (contains(value))
+            return;
         _storage->push(value);
     }
 
