@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <algorithm>
 
 #include "bst.h"
 #include "ordered_set.h"
@@ -17,7 +18,7 @@ int main() {
     run_set_tests();
     std::cout << "Set tests passed!" << std::endl;
 
-    eratosthenes_compare();
+//    eratosthenes_compare();
 
     return 0;
 }
@@ -143,6 +144,23 @@ void run_bst_tests() {
         assert(tree.min() == 1);
         assert(tree.max() == 3);
         assert(!tree.find(2));
+    }
+    {
+        auto tree = bst<int>();
+        for (auto x : {5, 1, 3, 7, 4, 10, -5, 26})
+            tree.push(x);
+
+        auto found = std::find(tree.begin(), tree.end(), 10);
+        assert(*found == 10);
+    }
+    {
+        auto tree = bst<int>();
+        for (auto x : {1, 7, 12, 13, 5, 6, 8})
+            tree.push(x);
+
+        auto even_count = std::count_if(tree.begin(), tree.end(),
+                [](int x) -> bool { return x % 2 == 0; });
+        assert(even_count == 3);
     }
 }
 

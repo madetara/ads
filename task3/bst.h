@@ -13,8 +13,7 @@
 template <typename T, typename Cmp = std::less<T>>
 struct bst {
 private:
-    struct node
-    {
+    struct node {
         const T _value;
         node *_parent;
         node *_left;
@@ -36,15 +35,11 @@ private:
                 throw std::logic_error("trying to delete pinned node");
         }
     };
+
 public:
-    class iterator {
+    class iterator : public std::iterator<std::bidirectional_iterator_tag, T> {
         node *_current;
         bst *_owner;
-        typedef ptrdiff_t difference_type;
-        typedef T value_type;
-        typedef T& reference;
-        typedef T* pointer;
-        typedef std::bidirectional_iterator_tag iterator_category;
 
         void swap(iterator &other) {
             std::swap(this->_current, other._current);
@@ -96,11 +91,11 @@ public:
             return result;
         }
 
-        value_type operator*() {
+        T operator*() {
             return _current->_value;
         }
 
-        pointer operator->() {
+        T &operator->() {
             return &(_current->_value);
         }
 
@@ -119,7 +114,7 @@ public:
 
     bst() : _cmp(Cmp()) {
         // fake_node required for end iterator
-        auto fake_node = reinterpret_cast<node*>(new char[sizeof(node)]);
+        auto fake_node = reinterpret_cast<node *>(new char[sizeof(node)]);
         fake_node->_parent = nullptr;
         fake_node->_left = nullptr;
         fake_node->_right = nullptr;
@@ -293,7 +288,7 @@ public:
             return;
         }
 
-        auto to_print = std::stack<node*>();
+        auto to_print = std::stack<node *>();
         to_print.push(_root);
 
         auto current = _root->_right;
@@ -353,7 +348,7 @@ public:
     }
 
     ~bst() {
-        auto to_delete = std::queue<node*>();
+        auto to_delete = std::queue<node *>();
         to_delete.push(_root);
 
         while (!to_delete.empty()) {
@@ -367,7 +362,7 @@ public:
             delete current;
         }
 
-        delete[] reinterpret_cast<char*>(_most_right);
+        delete[] reinterpret_cast<char *>(_most_right);
         _root = _most_right = _most_left = nullptr;
     }
 
