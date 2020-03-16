@@ -28,7 +28,7 @@ public:
     using difference_type = size_t;
     using pointer = key_type *;
     using const_pointer = const pointer;
-    using reference = value_type &;
+    using reference_type = value_type &;
     using const_reference = const value_type &;
     using const_iterator = iterator;
     using reverse_iterator = std::reverse_iterator<iterator>;
@@ -39,7 +39,7 @@ public:
         using iterator_category = std::bidirectional_iterator_tag;
         using difference_type = avl::difference_type;
         using value_type = avl::value_type;
-        using reference_type = avl::const_reference;
+        using reference = avl::const_reference;
         using pointer = avl::const_pointer;
 
     private:
@@ -52,7 +52,7 @@ public:
     public:
         iterator(const iterator &other) : iterator(other._data) {}
 
-        reference_type operator*() const {
+        reference operator*() const {
             return _data->_data;
         }
 
