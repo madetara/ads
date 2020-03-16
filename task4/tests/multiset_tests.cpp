@@ -4,12 +4,15 @@
 
 #include <gtest/gtest.h>
 
+#include "../lib/avl.h"
+
 class multiset_test : public ::testing::Test {
 public:
     template<typename T> using Myal = std::allocator<T>;
     template<typename T> using Mypred = std::less<T>;
 
-    template<typename T> using ContainerTemplate = std::multiset<T, Mypred<T>, Myal<T>>;
+//    template<typename T> using ContainerTemplate = std::multiset<T, Mypred<T>, Myal<T>>;
+    template<typename T> using ContainerTemplate = avl<T, Mypred<T>, Myal<T>>;
 
     using Mycont = ContainerTemplate<char>;
 protected:

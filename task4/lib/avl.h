@@ -7,35 +7,531 @@
 
 #include <queue>
 #include <functional>
+#include <iterator>
 
-template <typename T, typename Cmp = std::less<T>, typename Alloc = std::allocator<T>>
+template<typename T, typename Cmp = std::less<T>, typename Alloc = std::allocator<T>>
 class avl {
+private:
+    struct node;
+
+public:
+    using size_type = size_t;
+    using alloc_type = typename std::allocator_traits<Alloc>::template rebind_alloc<node>;
+
+    class iterator;
+
+    using key_type = T;
+    using key_compare = Cmp;
+    using value_compare = Cmp;
+    using value_type = T;
+    using allocator_type = alloc_type;
+    using difference_type = size_t;
+    using pointer = key_type *;
+    using const_pointer = const pointer;
+    using reference = value_type &;
+    using const_reference = const value_type &;
+    using const_iterator = iterator;
+    using reverse_iterator = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+    class iterator {
+    public:
+        using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type = avl::difference_type;
+        using value_type = avl::value_type;
+        using reference_type = avl::const_reference;
+        using pointer = avl::const_pointer;
+
+    private:
+        node *_data;
+
+        iterator(node *current) : _data(current) {}
+
+        friend class avl;
+
+    public:
+        iterator(const iterator &other) : iterator(other._data) {}
+
+        reference_type operator*() const {
+            return _data->_data;
+        }
+
+        pointer operator->() const {
+            return &(_data->_data);
+        }
+
+        bool operator==(const iterator &other) const {
+            return _data == other._data;
+        }
+
+        bool operator!=(const iterator &other) const {
+            return !(*this == other);
+        }
+
+        iterator &operator++() {
+            _data = _next_node();
+            return *this;
+        }
+
+        iterator operator++(int) {
+            auto result = *this;
+            ++(*this);
+            return result;
+        }
+
+        iterator &operator--() {
+            _data = _prev_node();
+            return *this;
+        }
+
+        iterator operator--(int) {
+            auto result = *this;
+            --(*this);
+            return result;
+        }
+
+    private:
+        node *_next_node() const {
+            auto current = _data;
+
+            if (!avl::_is_fake(current->_right)) {
+                current = current->_right;
+
+                while (!avl::_is_fake(current->_left))
+                    current = current->_left;
+
+                return current;
+            }
+
+            while (!avl::_is_fake(current->_parent) && current->_parent->_right == current)
+                current = current->_parent;
+
+            if (!avl::_is_fake(current->_parent))
+                return current->_parent;
+
+            return current;
+        }
+
+
+        node *_prev_node() const {
+            auto current = _data;
+
+            if (!avl::_is_fake(current->_left)) {
+                current = current->_left;
+
+                while (!avl::_is_fake(current->_right))
+                    current = current->_right;
+
+                return current;
+            }
+
+            while (!avl::_is_fake(current->_parent) && current->_parent->_left == current)
+                current = current->_parent;
+
+            if (!avl::_is_fake(current->_parent))
+                return current->_parent;
+
+            return current;
+        }
+
+        inline bool _is_leaf() const {
+            return avl::_is_leaf(_data);
+        }
+
+        inline bool _is_fake() const {
+            return avl::_is_fake(_data);
+        }
+    };
+
+private:
     struct node {
         T _data;
         node *_parent;
         node *_left;
         node *_right;
+
+        node(T data = T(), node *parent = nullptr, node *left = nullptr, node *right = nullptr) :
+                _data(data), _parent(parent), _left(left), _right(right) {}
     };
+
+
+    Cmp _cmp;
+    alloc_type _al;
+    size_type _size;
 
     node *_root;
     node *_fake;
-    Cmp _cmp;
-    Alloc _al;
 
 public:
-    avl() : _cmp(Cmp()), _al(Alloc()) {
-        _root = _fake = reinterpret_cast<node *>(new char[sizeof(node)]);
+
+    avl(Cmp cmp = Cmp(), alloc_type al = alloc_type()) : _cmp(cmp), _al(al), _size(0) {
+        _fake = _make_fake();
+        _root = _fake;
     }
 
-    void push(const T &value) {
-        _push(value);
+    avl(const avl<T, Cmp, Alloc> &other) : _cmp(Cmp()), _al(alloc_type()), _size(other._size) {
+        _fake = _make_fake();
+
+        if (other.size() == 0) {
+            _root = _fake;
+            return;
+        }
+
+        _root = _make_node(other._root->_data, _fake, _fake, _fake);
+        _copy(other._root, other._fake, _root, _fake);
     }
 
-    bool find(const T &value) const {
-        _find(value);
+    avl(avl<T, Cmp, Alloc> &&other) {
+        this->_swap(other);
+    }
+
+    template<typename It>
+    avl(It begin, It end, Cmp cmp = Cmp(), alloc_type al = alloc_type()) : avl(cmp, al) {
+        auto current = begin;
+        while (current != end) {
+            this->insert(*(current++));
+        }
+    }
+
+    avl(std::initializer_list<T> values) : avl() {
+        for (const auto &value: values) {
+            this->insert(value);
+        }
+    }
+
+
+    iterator find(const T &value) const {
+        return _find(value);
+    }
+
+    size_type size() const {
+        return _size;
+    }
+
+    alloc_type get_allocator() const {
+        return _al;
+    }
+
+    bool empty() const {
+        return size() == 0;
+    }
+
+    iterator begin() const {
+        return iterator(_fake->_left);
+    }
+
+    reverse_iterator rbegin() const {
+        return reverse_iterator(iterator(_fake->_right));
+    }
+
+    iterator end() const {
+        return iterator(_fake);
+    }
+
+    reverse_iterator rend() const {
+        return reverse_iterator(iterator(_fake));
+    }
+
+    size_type count(const T &value) const {
+        return _count(value);
+    }
+
+    void swap(avl<T, Cmp, Alloc> &other) {
+        this->_swap(other);
+    }
+
+    avl<T, Cmp, Alloc> &operator=(const avl<T, Cmp, Alloc> &other) {
+        if (this == &other)
+            return *this;
+
+        this->_swap(other);
+        return *this;
+    }
+
+    bool operator==(const avl<T, Cmp, Alloc> &other) const {
+        auto it1 = this->begin(), it2 = other.begin();
+
+        while (it1 != end() && it2 != other.end() && _eq(*it1, *it2)) {
+            ++it1;
+            ++it2;
+        }
+
+        return it1 == this->end() && it2 == other.end();
+    }
+
+    bool operator!=(const avl<T, Cmp, Alloc> &other) const {
+        return !(*this == other);
+    }
+
+    bool operator<(const avl<T, Cmp, Alloc> &other) const {
+        auto it1 = this->begin(), it2 = other.begin();
+
+        while (it1 != this->end() && it2 != other.end() && _eq(*it1, *it2)) {
+            ++it1;
+            ++it2;
+        }
+
+        if (it1 == this->end())
+            return it2 != other.end();
+
+        return it2 != other.end() && *it1 < *it2;
+    }
+
+    bool operator>=(const avl<T, Cmp, Alloc> &other) const {
+        return !(*this < other);
+    }
+
+    bool operator>(const avl<T, Cmp, Alloc> &other) const {
+        return other < *this;
+    }
+
+    bool operator<=(const avl<T, Cmp, Alloc> &other) const {
+        return !(*this > other);
+    }
+
+    key_compare key_comp() const {
+        return _cmp;
+    }
+
+    value_compare value_comp() const {
+        return _cmp;
+    }
+
+    const_iterator insert(const T &value) {
+        auto result = _push(value);
+        ++_size;
+        return result;
+    }
+
+    const_iterator insert(const_iterator it, const T &value) {
+        auto current = it;
+        auto prev = it;
+
+        if (current._is_fake() || _cmp(value, *current)) {
+            --prev;
+
+            while (!current._is_fake() && !_cmp(value, *current)) {
+                current = prev--;
+            }
+        } else {
+            while (!current._is_fake() && !_cmp(value, *current)) {
+                prev = current++;
+            }
+        }
+
+        ++_size;
+
+        // empty tree
+        if (current == prev) {
+            auto new_node = _make_node(value, _fake, _fake, _fake);
+            _fake->_parent = _fake->_left = _fake->_right = new_node;
+            return const_iterator(new_node);
+        }
+
+        // most left insert
+        if (prev._is_fake()) {
+            auto p_node = current._data;
+            p_node->_left = _make_node(value, p_node, _fake, _fake);
+            _fake->_left = p_node->_left;
+            return const_iterator(p_node->_left);
+        }
+
+        // empty right insert
+        if (_is_fake(prev._data->_right)) {
+            prev._data->_right = _make_node(value, prev._data, _fake, _fake);
+            if (_fake->_right == prev._data) {
+                _fake->_right = prev._data->_right;
+            }
+
+            return const_iterator(prev._data->_right);
+        }
+
+        // non-empty right insert
+        current._data->_left = _make_node(value, current._data, _fake, _fake);
+        return const_iterator(current._data->_left);
+    }
+
+    template<typename It>
+    void insert(It begin, It end) {
+        auto current = begin;
+
+        while (current != end) {
+            this->insert(*(current++));
+        }
+    }
+
+    const_iterator lower_bound(const T &value) const {
+        auto current = _root, result = _root;
+
+        while (!_is_fake(current)) {
+            if (!_cmp(value, current->_data)) {
+                result = current;
+                current = current->_right;
+            } else {
+                current = current->_left;
+            }
+        }
+
+        return const_iterator(result);
+    }
+
+    const_iterator upper_bound(const T &value) const {
+        auto current = _root, result = _root;
+
+        while (!_is_fake(current)) {
+            if (_cmp(value, current->_data)) {
+                result = current;
+                current = current->_right;
+            } else {
+                current = current->_left;
+            }
+        }
+
+        return const_iterator(result);
+    }
+
+    size_type erase(const T &target) {
+        size_type removed = 0;
+
+        auto current = find(target);
+        while (current != end()) {
+            erase(current);
+            ++removed;
+            current = find(target);
+        }
+
+        return removed;
+    }
+
+    iterator erase(iterator target) {
+        if (target._is_fake())
+            return _fake;
+
+        if (target._is_leaf()) {
+            iterator result(target);
+            ++result;
+            _erase_leaf(target);
+            return result;
+        }
+
+        // root
+        if (target._data->_parent == _fake) {
+            iterator result(target);
+            ++result;
+            _erase_root(target);
+            return result;
+        }
+
+        return end();
+    }
+
+    iterator erase(iterator begin, iterator end) {
+        auto current = begin;
+        auto result = this->end();
+
+        while (current != end) {
+            result = erase(current++);
+        }
+
+        return result;
+    }
+
+    std::pair<const_iterator, const_iterator> equal_range(const T &value) const {
+        auto begin = lower_bound(value);
+        auto end = upper_bound(value);
+
+        return std::make_pair(begin, end);
+    }
+
+    void clear() {
+        _clear();
+        _root = _fake;
+        _size = 0;
     }
 
     ~avl() {
+        _clear();
+        _delete_fake(_fake);
+    }
+
+private:
+
+    inline iterator _push(const T &value) {
+        auto new_node = _make_node(value, _fake, _fake, _fake);
+        auto result = iterator(new_node);
+
+        if (_root == _fake) {
+            new_node->_parent = _fake;
+            _fake->_left = new_node;
+            _fake->_right = new_node;
+            _root = new_node;
+            return result;
+        }
+
+        auto current = _root;
+        auto going_left = true, going_right = true;
+
+        while (true) {
+            if (_cmp(value, current->_data)) {
+                going_right = false;
+                if (current->_left == _fake) {
+                    current->_left = new_node;
+                    break;
+                } else {
+                    current = current->_left;
+                }
+            } else {
+                going_left = false;
+                if (current->_right == _fake) {
+                    current->_right = new_node;
+                    break;
+                } else {
+                    current = current->_right;
+                }
+            }
+        }
+
+        new_node->_parent = current;
+
+        if (going_left) {
+            _fake->_left = new_node;
+        }
+
+        if (going_right) {
+            _fake->_right = new_node;
+        }
+
+        _balance();
+
+        return result;
+    }
+
+    inline void _balance() {
+
+    }
+
+    inline iterator _find(const T &value) const {
+        auto current = _root;
+
+        while (current != _fake) {
+            if (_eq(current->_data, value))
+                return iterator(current);
+
+            if (_cmp(value, current->_data)) {
+                current = current->_left;
+            } else {
+                current = current->_right;
+            }
+        }
+
+        return end();
+    }
+
+    inline bool _eq(const T &a, const T &b) const {
+        return (!_cmp(a, b) && !_cmp(b, a));
+    }
+
+    void _clear() {
         auto to_delete = std::queue<node *>();
         to_delete.push(_root);
 
@@ -49,81 +545,128 @@ public:
             to_delete.push(next->_left);
             to_delete.push(next->_right);
 
-            delete next;
+            _delete_node(next);
         }
-
-        delete[] reinterpret_cast<char *>(_fake);
     }
 
-private:
+    inline node *_make_fake() {
+        auto fake = _al.allocate(1);
 
-    inline void _push(const T &value) {
-        auto new_node = new node{value, nullptr, _fake, _fake};
+        std::allocator_traits<alloc_type>::construct(_al, &(fake->_parent));
+        fake->_parent = fake;
 
-        if (_root == _fake) {
-            new_node->_parent = _fake;
-            _fake->_left = new_node;
-            _fake->_right = new_node;
-            _root = new_node;
+        std::allocator_traits<alloc_type>::construct(_al, &(fake->_left));
+        fake->_left = fake;
+
+        std::allocator_traits<alloc_type>::construct(_al, &(fake->_right));
+        fake->_right = fake;
+
+        return fake;
+    }
+
+    inline node *_make_node(const T &data, node *parent, node *left, node *right) {
+        auto new_node = _al.allocate(1);
+
+        std::allocator_traits<alloc_type>::construct(_al, &(new_node->_parent));
+        new_node->_parent = parent;
+
+        std::allocator_traits<alloc_type>::construct(_al, &(new_node->_left));
+        new_node->_left = left;
+
+        std::allocator_traits<alloc_type>::construct(_al, &(new_node->_right));
+        new_node->_right = right;
+
+        std::allocator_traits<alloc_type>::construct(_al, &(new_node->_data));
+        new_node->_data = data;
+
+        return new_node;
+    }
+
+    inline void _delete_fake(node *node) {
+        std::allocator_traits<alloc_type>::destroy(_al, &(node->_parent));
+        std::allocator_traits<alloc_type>::destroy(_al, &(node->_left));
+        std::allocator_traits<alloc_type>::destroy(_al, &(node->_right));
+        std::allocator_traits<alloc_type>::deallocate(_al, node, 1);
+    }
+
+    inline void _delete_node(node *node) {
+        std::allocator_traits<alloc_type>::destroy(_al, &(node->_data));
+        _delete_fake(node);
+    }
+
+    void _copy(node *from, node *from_fake, node *to, node *to_fake) {
+        if (to == to_fake)
             return;
-        }
 
-        auto current = _root;
+        to->_data = T(from->_data);
 
-        while (true) {
-            if (_cmp(value, current->_data)) {
-                if (current->_left == _fake) {
-                    current->_left = new_node;
-                    break;
-                } else {
-                    current = current->_left;
-                }
-            } else {
-                if (current->_right == _fake) {
-                    current->_right = new_node;
-                    break;
-                } else {
-                    current = current->_right;
-                }
-            }
-        }
+        auto left = from->_left == from_fake ?
+                    to_fake :
+                    _make_node(from->_left->_data, to, to_fake, to_fake);
 
-        new_node->_parent = current;
+        auto right = from->_right == from_fake ?
+                     to_fake :
+                     _make_node(from->_right->_data, to, to_fake, to_fake);
 
-        if (_fake->_left == current && _fake->_left != _fake) {
-            _fake->_left = new_node;
-        }
+        to->_left = left;
+        to->_right = right;
 
-        if (_fake->_right == current && _fake->_right != _fake) {
-            _fake->_right = new_node;
-        }
-
-        _balance();
+        _copy(from->_left, from_fake, to->_left, to_fake);
+        _copy(from->_right, from_fake, to->_right, to_fake);
     }
 
-    inline void _balance() {
-
-    }
-
-    inline bool _find(const T &value) const {
+    size_type _count(const T &value) const {
         auto current = _root;
+        size_type result = 0;
 
-        while (current != _fake) {
+        while (!_is_fake(current)) {
             if (_eq(current->_data, value))
-                return true;
+                ++result;
 
-            if (_cmp(value, current->_data)) {
+            if (_cmp(value, current->_data))
                 current = current->_left;
-            } else {
+            else
                 current = current->_right;
-            }
         }
 
-        return false;
+        return result;
     }
 
-    inline bool _eq(const T &a, const T &b) const {
-        return (!_cmp(a, b) && !_cmp(b, a));
+    void _swap(avl<T, Cmp, Alloc> other) {
+        std::swap(_root, other._root);
+        std::swap(_fake, other._fake);
+        std::swap(_size, other._size);
+        std::swap(_al, other._al);
+        std::swap(_cmp, other._cmp);
+    }
+
+    void _erase_leaf(iterator leaf) {
+        auto leaf_node = leaf._data;
+        auto parent = leaf_node->_parent;
+
+        if (parent->_left == leaf_node) {
+            parent->_left = _fake;
+        } else {
+            parent->_right = _fake;
+        }
+
+        if (_root == leaf_node) {
+            _root = _fake->_left = _fake->_right = _fake;
+        }
+
+        _delete_node(leaf_node);
+    }
+
+    void _erase_root(iterator target) {
+
+    }
+
+    static inline bool _is_leaf(node *node) {
+        return _is_fake(node->_left) && _is_fake(node->_right);
+    }
+
+    static inline bool _is_fake(node *node) {
+        return node->_parent == node;
     }
 };
 
