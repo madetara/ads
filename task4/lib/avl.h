@@ -94,6 +94,10 @@ public:
         node *_next_node() const {
             auto current = _data;
 
+            if (avl::_is_fake(current)) {
+                return current->_left;
+            }
+
             if (!avl::_is_fake(current->_right)) {
                 current = current->_right;
 
@@ -115,6 +119,10 @@ public:
 
         node *_prev_node() const {
             auto current = _data;
+
+            if (avl::_is_fake(current)) {
+                return current->_right;
+            }
 
             if (!avl::_is_fake(current->_left)) {
                 current = current->_left;
@@ -221,7 +229,7 @@ public:
     }
 
     reverse_iterator rbegin() const {
-        return reverse_iterator(iterator(_fake->_right));
+        return reverse_iterator(iterator(_fake));
     }
 
     iterator end() const {
@@ -229,7 +237,7 @@ public:
     }
 
     reverse_iterator rend() const {
-        return reverse_iterator(iterator(_fake));
+        return reverse_iterator(iterator(_fake->_right));
     }
 
     size_type count(const T &value) const {
