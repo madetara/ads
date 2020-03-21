@@ -8,7 +8,6 @@
 #include <queue>
 #include <functional>
 #include <iterator>
-#include <random>
 
 template<typename T, typename Cmp = std::less<T>, typename Alloc = std::allocator<T>>
 class avl {
@@ -491,12 +490,7 @@ public:
 
         iterator result(target), replacement(target);
         ++result;
-
-        if (_coin_flip()) {
-            ++replacement;
-        } else {
-            --replacement;
-        }
+        --replacement;
 
         node *orphan(_fake);
         if (replacement._has_single_child()) {
@@ -767,10 +761,6 @@ private:
 
     static inline bool _is_fake(node *node) {
         return node->_parent == node;
-    }
-
-    static inline bool _coin_flip() {
-        return rand() % 2 == 0;
     }
 };
 
