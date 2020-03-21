@@ -190,7 +190,7 @@ public:
         _root = _fake;
     }
 
-    avl(const avl<T, Cmp, Alloc> &other) : _cmp(Cmp(other._cmp)), _al(Alloc(other._al)), _size(0) {
+    avl(const avl<T, Cmp, Alloc> &other) : _cmp(Cmp(other._cmp)), _al(Alloc(other._al)), _size(other._size) {
         _fake = _make_fake();
         _fake->_left = _fake->_right = _fake->_parent = _fake;
 
@@ -404,9 +404,9 @@ public:
         while (!_is_fake(current)) {
             if (_cmp(value, current->_data)) {
                 result = current;
-                current = current->_right;
-            } else {
                 current = current->_left;
+            } else {
+                current = current->_right;
             }
         }
 
@@ -437,6 +437,17 @@ public:
             return result;
         }
 
+        node *left_replace = nullptr;
+        if (target == _fake->_left) {
+            left_replace = (++iterator(target))._data;
+        }
+
+        node *right_replace = nullptr;
+        if (target == _fake->_right) {
+            right_replace = (--iterator(target))._data;
+        }
+
+
         if (target._has_single_child()) {
             iterator result(target);
             ++result;
@@ -466,12 +477,12 @@ public:
                 _root = new_child;
             }
 
-            if (_fake->_left == target._data) {
-                _fake->_left = new_child;
+            if (left_replace != nullptr) {
+                _fake->_left = left_replace;
             }
 
-            if (_fake->_right == target._data) {
-                _fake->_right = new_child;
+            if (right_replace != nullptr) {
+                _fake->_right = right_replace;
             }
 
             _delete_node(target._data);
@@ -503,7 +514,7 @@ public:
             }
         }
 
-        _delete_node(replacement._data);
+        _erase_leaf(replacement);
         return result;
     }
 
