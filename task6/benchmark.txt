@@ -1,8 +1,8 @@
 Run on (8 X 1992 MHz CPU s)
 Load Average: 0.52, 0.58, 0.59
--------------------------------------------------------------------------------------
-Benchmark                                           Time             CPU   Iterations
--------------------------------------------------------------------------------------
-p_queue_fixture/heap_based_priority_queue        32.4 ms         30.4 ms           18
-p_queue_fixture/std_priority_queue               31.7 ms         32.1 ms           19
-p_queue_fixture/array_based_priority_queue     157308 ms       155047 ms            1
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+Benchmark                                                                                                               Time             CPU   Iterations
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+p_queue_fixture<p_queue<std::string, std::vector<std::string>, length_compare>>/heap_based_priority_queue            32.7 ms         32.2 ms           16
+p_queue_fixture<std::priority_queue<std::string, std::vector<std::string>, length_compare>>/std_priority_queue       34.3 ms         34.2 ms           21
+p_queue_fixture<p_queue_arr<std::string, std::vector<std::string>, length_compare>>/array_based_priority_queue     174092 ms       172672 ms            1

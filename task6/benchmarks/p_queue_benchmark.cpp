@@ -19,11 +19,14 @@ public:
     }
 };
 
+template<typename TQueue>
 class p_queue_fixture : public benchmark::Fixture {
 public:
+    using PriorityQueue = TQueue;
+
     std::vector<std::string> data;
 
-    void SetUp(const ::benchmark::State &state) {
+    void SetUp(const ::benchmark::State &state) override {
         std::ifstream in("data.txt", std::ios::in);
         std::string word;
         data = std::vector<std::string>();
@@ -37,60 +40,49 @@ public:
         in.close();
     }
 
-    void TearDown(const ::benchmark::State &state) {
+    void TearDown(const ::benchmark::State &state) override {
+    }
+
+    void get_top_20() {
+        PriorityQueue q;
+
+        for (const auto &word: data) {
+            q.push(word);
+        }
+
+        std::vector<std::string> top20;
+
+        for (size_t i = 0; i < 20; ++i) {
+            top20.push_back(q.top());
+            q.pop();
+        }
     }
 };
 
-BENCHMARK_DEFINE_F(p_queue_fixture, heap_based_priority_queue)(benchmark::State &state) {
+BENCHMARK_TEMPLATE_DEFINE_F(
+        p_queue_fixture,
+        std_priority_queue,
+        std::priority_queue<std::string, std::vector<std::string>, length_compare>)(benchmark::State &state) {
     for (auto _ : state) {
-        p_queue<std::string, std::vector<std::string>, length_compare> q;
-
-        for (const auto &word: data) {
-            q.push(word);
-        }
-
-        std::vector<std::string> top20;
-
-        for (size_t i = 0; i < 20; ++i) {
-            top20.push_back(q.top());
-            q.pop();
-        }
+        get_top_20();
     }
 }
 
-
-BENCHMARK_DEFINE_F(p_queue_fixture, std_priority_queue)(benchmark::State &state) {
+BENCHMARK_TEMPLATE_DEFINE_F(
+        p_queue_fixture,
+        heap_based_priority_queue,
+        p_queue<std::string, std::vector<std::string>, length_compare>)(benchmark::State &state) {
     for (auto _ : state) {
-        std::priority_queue<std::string, std::vector<std::string>, length_compare> q;
-
-        for (const auto &word: data) {
-            q.push(word);
-        }
-
-        std::vector<std::string> top20;
-
-        for (size_t i = 0; i < 20; ++i) {
-            top20.push_back(q.top());
-            q.pop();
-        }
+        get_top_20();
     }
 }
 
-
-BENCHMARK_DEFINE_F(p_queue_fixture, array_based_priority_queue)(benchmark::State &state) {
+BENCHMARK_TEMPLATE_DEFINE_F(
+        p_queue_fixture,
+        array_based_priority_queue,
+        p_queue_arr<std::string, std::vector<std::string>, length_compare>)(benchmark::State &state) {
     for (auto _ : state) {
-        p_queue_arr<std::string, std::vector<std::string>, length_compare> q;
-
-        for (const auto &word: data) {
-            q.push(word);
-        }
-
-        std::vector<std::string> top20;
-
-        for (size_t i = 0; i < 20; ++i) {
-            top20.push_back(q.top());
-            q.pop();
-        }
+        get_top_20();
     }
 }
 
